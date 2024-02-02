@@ -8,11 +8,13 @@ static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 use std::marker::PhantomData;
 
-use alloy_primitives::address;
 use alloy_sol_types::SolError;
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
 use stylus_sdk::{
-    alloy_primitives::{Address, U256}, alloy_sol_types::sol, evm, msg, prelude::*
+    alloy_primitives::{Address, U256},
+    alloy_sol_types::sol,
+    evm, msg,
+    prelude::*,
 };
 
 // ERC721 に任意に渡せるパラメータ
@@ -79,8 +81,10 @@ impl<T: ERC721Params> ERC721<T> {
     fn _require_owned(&self, token_id: U256) -> ERC721Result<Address> {
         let owner = self.owner_of(token_id)?;
 
-        if owner == address!("0") {
-            return Err(ERC721Error::ERC721NonexistentToken(ERC721NonexistentToken{ tokenId: token_id }))
+        if owner == Address::ZERO {
+            return Err(ERC721Error::ERC721NonexistentToken(
+                ERC721NonexistentToken { tokenId: token_id },
+            ));
         }
 
         Ok(owner)
@@ -90,24 +94,36 @@ impl<T: ERC721Params> ERC721<T> {
         self.operator_approvals.get(owner).get(operator)
     }
 
-    fn _approve(&self, to: Address, token_id: U256, address: Address) -> ERC721Result<()> {
+    fn _approve(&mut self, to: Address, token_id: U256, address: Address) -> ERC721Result<()> {
         self._approve_real(to, token_id, address, true)
     }
 
-    fn _approve_real(&self, to: Address, token_id: U256, auth: Address, emit_event: bool) -> ERC721Result<()> {
-        if emit_event || auth != address!("0") {
+    fn _approve_real(
+        &mut self,
+        to: Address,
+        token_id: U256,
+        auth: Address,
+        emit_event: bool,
+    ) -> ERC721Result<()> {
+        if emit_event || auth != Address::ZERO {
             let owner = self._require_owned(token_id)?;
 
-            if auth != address!("0") && owner != auth && !self._is_approved_for_all(owner, auth) {
-                return Err(ERC721Error::ERC721InvalidOperator(ERC721InvalidOperator{ operator: auth }))
+            if auth != Address::ZERO && owner != auth && !self._is_approved_for_all(owner, auth) {
+                return Err(ERC721Error::ERC721InvalidOperator(ERC721InvalidOperator {
+                    operator: auth,
+                }));
             }
 
             if emit_event {
-                evm::log(Approval{_owner: owner, _approved: auth, _tokenId: token_id});
+                evm::log(Approval {
+                    _owner: owner,
+                    _approved: to,
+                    _tokenId: token_id,
+                });
             }
         }
 
-        self.token_approvals.setter(token_id).set(auth);
+        self.token_approvals.setter(token_id).set(to);
         Ok(())
     }
 }
@@ -134,7 +150,7 @@ impl<T: ERC721Params> ERC721<T> {
         Ok(T::BASE_URI.to_string() + &token_id.to_string())
     }
 
-    fn approve(&self, to: Address, token_id: U256) -> ERC721Result<()> {
+    fn approve(&mut self, to: Address, token_id: U256) -> ERC721Result<()> {
         self._approve(to, token_id, msg::sender())
     }
 }
