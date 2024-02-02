@@ -19,6 +19,7 @@ use stylus_sdk::{
 // ERC721 に任意に渡せるパラメータ
 pub trait ERC721Params {
     const NAME: &'static str;
+    const SYMBOL: &'static str;
 }
 
 sol_storage! {
@@ -87,6 +88,10 @@ impl<T: ERC721Params> ERC721<T> {
     }
 
     fn name(&self) -> ERC721Result<String> {
+        Ok(T::NAME.into())
+    }
+
+    fn symbol(&self) -> ERC721Result<String> {
         Ok(T::NAME.into())
     }
 }
