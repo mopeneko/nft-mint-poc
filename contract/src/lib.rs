@@ -8,11 +8,14 @@ static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 use alloy_sol_types::SolError;
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
-use stylus_sdk::{alloy_primitives::{Address, U256}, alloy_sol_types::sol, prelude::*};
+use stylus_sdk::{
+    alloy_primitives::{Address, U256},
+    alloy_sol_types::sol,
+    prelude::*,
+};
 
 // ERC721 に任意に渡せるパラメータ
-pub trait ERC721Params {
-}
+pub trait ERC721Params {}
 
 sol_storage! {
     #[entrypoint]
