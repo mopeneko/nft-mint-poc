@@ -1,18 +1,3 @@
-//! Implements a hello-world example for Arbitrum Stylus, providing a Solidity ABI-equivalent
-//! Rust implementation of the Counter contract example provided by Foundry.
-//! Warning: this code is a template only and has not been audited.
-//! ```
-//! contract Counter {
-//!     uint256 public number;
-//!     function setNumber(uint256 newNumber) public {
-//!         number = newNumber;
-//!     }
-//!     function increment() public {
-//!         number++;
-//!     }
-//! }
-//! ```
-
 // Only run this as a WASM if the export-abi feature is not set.
 #![cfg_attr(not(feature = "export-abi"), no_main)]
 extern crate alloc;
@@ -21,38 +6,71 @@ extern crate alloc;
 #[global_allocator]
 static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
+use alloy_sol_types::SolError;
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
-use stylus_sdk::{alloy_primitives::U256, prelude::*};
+use stylus_sdk::{alloy_primitives::{Address, U256}, alloy_sol_types::sol, prelude::*};
 
-// Define the entrypoint as a Solidity storage object, in this case a struct
-// called `Counter` with a single uint256 value called `number`. The sol_storage! macro
-// will generate Rust-equivalent structs with all fields mapped to Solidity-equivalent
-// storage slots and types.
+// ERC721 に任意に渡せるパラメータ
+pub trait ERC721Params {
+}
+
 sol_storage! {
     #[entrypoint]
-    pub struct Counter {
-        uint256 number;
+    pub struct ERC721 {
+        mapping(address => uint256) balances;
     }
 }
 
-/// Define an implementation of the generated Counter struct, defining a set_number
-/// and increment method using the features of the Stylus SDK.
+sol! {
+    event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId);
+    event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId);
+    event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
+
+    error ERC721InvalidOwner(address owner);
+    error ERC721NonexistentToken(uint256 tokenId);
+    error ERC721IncorrectOwner(address sender, uint256 tokenId, address owner);
+    error ERC721InvalidSender(address sender);
+    error ERC721InvalidReceiver(address receiver);
+    error ERC721InsufficientApproval(address operator, uint256 tokenId);
+    error ERC721InvalidApprover(address approver);
+    error ERC721InvalidOperator(address operator);
+}
+
+enum ERC721Error {
+    ERC721InvalidOwner(ERC721InvalidOwner),
+    ERC721NonexistentToken(ERC721NonexistentToken),
+    ERC721IncorrectOwner(ERC721IncorrectOwner),
+    ERC721InvalidSender(ERC721InvalidSender),
+    ERC721InvalidReceiver(ERC721InvalidReceiver),
+    ERC721InsufficientApproval(ERC721InsufficientApproval),
+    ERC721InvalidApprover(ERC721InvalidApprover),
+    ERC721InvalidOperator(ERC721InvalidOperator),
+}
+
+impl From<ERC721Error> for Vec<u8> {
+    fn from(err: ERC721Error) -> Vec<u8> {
+        match err {
+            ERC721Error::ERC721InvalidOwner(e) => e.encode(),
+            ERC721Error::ERC721NonexistentToken(e) => e.encode(),
+            ERC721Error::ERC721IncorrectOwner(e) => e.encode(),
+            ERC721Error::ERC721InvalidSender(e) => e.encode(),
+            ERC721Error::ERC721InvalidReceiver(e) => e.encode(),
+            ERC721Error::ERC721InsufficientApproval(e) => e.encode(),
+            ERC721Error::ERC721InvalidApprover(e) => e.encode(),
+            ERC721Error::ERC721InvalidOperator(e) => e.encode(),
+        }
+    }
+}
+
+type ERC721Result<T> = Result<T, ERC721Error>;
+
+impl ERC721 {
+    // TODO: ここに内部処理(Mintとか)を書く
+}
+
 #[external]
-impl Counter {
-    /// Gets the number from storage.
-    pub fn number(&self) -> Result<U256, Vec<u8>> {
-        Ok(self.number.get())
-    }
-
-    /// Sets a number in storage to a user-specified value.
-    pub fn set_number(&mut self, new_number: U256) -> Result<(), Vec<u8>> {
-        self.number.set(new_number);
-        Ok(())
-    }
-
-    /// Increments number and updates it values in storage.
-    pub fn increment(&mut self) -> Result<(), Vec<u8>> {
-        let number = self.number.get();
-        self.set_number(number + U256::from(1))
+impl ERC721 {
+    fn balance_of(&self, owner: Address) -> ERC721Result<U256> {
+        Ok(self.balances.get(owner))
     }
 }
