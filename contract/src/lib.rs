@@ -20,6 +20,7 @@ pub trait ERC721Params {}
 sol_storage! {
     #[entrypoint]
     pub struct ERC721 {
+        mapping(uint256 => address) owners;
         mapping(address => uint256) balances;
     }
 }
@@ -75,5 +76,9 @@ impl ERC721 {
 impl ERC721 {
     fn balance_of(&self, owner: Address) -> ERC721Result<U256> {
         Ok(self.balances.get(owner))
+    }
+
+    fn owner_of(&self, token_id: U256) -> ERC721Result<Address> {
+        Ok(self.owners.get(token_id))
     }
 }
