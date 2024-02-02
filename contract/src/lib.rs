@@ -6,6 +6,8 @@ extern crate alloc;
 #[global_allocator]
 static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
+use std::marker::PhantomData;
+
 use alloy_sol_types::SolError;
 /// Import the Stylus SDK along with alloy primitive types for use in our program.
 use stylus_sdk::{
@@ -15,10 +17,13 @@ use stylus_sdk::{
 };
 
 // ERC721 に任意に渡せるパラメータ
-pub trait ERC721Params {}
+pub trait ERC721Params {
+    const NAME: &'static str;
+}
 
 sol_storage! {
-    pub struct ERC721 {
+    pub struct ERC721<T> {
+        PhantomData<T> custom_params;
         mapping(uint256 => address) owners;
         mapping(address => uint256) balances;
     }
@@ -67,17 +72,21 @@ impl From<ERC721Error> for Vec<u8> {
 
 type ERC721Result<T> = Result<T, ERC721Error>;
 
-impl ERC721 {
+impl<T: ERC721Params> ERC721<T> {
     // TODO: ここに内部処理(Mintとか)を書く
 }
 
 #[external]
-impl ERC721 {
+impl<T: ERC721Params> ERC721<T> {
     fn balance_of(&self, owner: Address) -> ERC721Result<U256> {
         Ok(self.balances.get(owner))
     }
 
     fn owner_of(&self, token_id: U256) -> ERC721Result<Address> {
         Ok(self.owners.get(token_id))
+    }
+
+    fn name(&self) -> ERC721Result<String> {
+        Ok(T::NAME.into())
     }
 }
