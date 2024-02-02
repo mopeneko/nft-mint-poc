@@ -18,7 +18,6 @@ use stylus_sdk::{
 pub trait ERC721Params {}
 
 sol_storage! {
-    #[entrypoint]
     pub struct ERC721 {
         mapping(uint256 => address) owners;
         mapping(address => uint256) balances;
