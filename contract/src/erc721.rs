@@ -79,10 +79,6 @@ impl<T: ERC721Params> ERC721<T> {
         Ok(owner)
     }
 
-    fn _is_approved_for_all(&self, owner: Address, operator: Address) -> ERC721Result<bool> {
-        Ok(self.operator_approvals.get(owner).get(operator))
-    }
-
     fn _approve_real(
         &mut self,
         to: Address,
@@ -145,6 +141,10 @@ impl<T: ERC721Params> ERC721<T> {
 
         Ok(())
     }
+
+    fn _is_approved_for_all(&self, owner: Address, operator: Address) -> ERC721Result<bool> {
+        Ok(self.operator_approvals.get(owner).get(operator))
+    }
 }
 
 #[external]
@@ -181,5 +181,9 @@ impl<T: ERC721Params> ERC721<T> {
 
     fn set_approval_for_all(&mut self, operator: Address, approved: bool) -> ERC721Result<()> {
         self._set_approval_for_all(msg::sender(), operator, approved)
+    }
+
+    fn is_approved_for_all(&self, owner: Address, operator: Address) -> ERC721Result<bool> {
+        self._is_approved_for_all(owner, operator)
     }
 }
