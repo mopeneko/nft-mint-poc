@@ -274,4 +274,8 @@ impl<T: ERC721Params> ERC721<T> {
 
         Ok(())
     }
+
+    fn safe_transfer_from(&mut self, from: Address, to: Address, token_id: U256) -> ERC721Result<()> {
+        self.transfer_from(from, to, token_id)
+    }
 }
