@@ -164,3 +164,23 @@ impl<T: ERC721Params> ERC721<T> {
         self._get_approved(token_id)
     }
 }
+
+struct NFTParams;
+
+impl ERC721Params for NFTParams {
+    const NAME: &'static str = "Test NFT";
+    const SYMBOL: &'static str = "TEST";
+    const BASE_URI: &'static str = "https://example.com";
+}
+
+sol_storage! {
+    #[entrypoint]
+    pub struct NFT {
+        #[borrow]
+        ERC721<NFTParams> erc721;
+    }
+}
+
+#[external]
+#[inherit(ERC721<NFTParams>)]
+impl NFT {}
