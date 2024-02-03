@@ -41,33 +41,29 @@ sol! {
     error ERC721InvalidOperator(address operator);
 }
 
-enum ERC721Error {
-    ERC721InvalidOwner(ERC721InvalidOwner),
+pub enum ERC721Error {
     ERC721NonexistentToken(ERC721NonexistentToken),
     ERC721IncorrectOwner(ERC721IncorrectOwner),
     ERC721InvalidSender(ERC721InvalidSender),
     ERC721InvalidReceiver(ERC721InvalidReceiver),
     ERC721InsufficientApproval(ERC721InsufficientApproval),
-    ERC721InvalidApprover(ERC721InvalidApprover),
     ERC721InvalidOperator(ERC721InvalidOperator),
 }
 
 impl From<ERC721Error> for Vec<u8> {
     fn from(err: ERC721Error) -> Vec<u8> {
         match err {
-            ERC721Error::ERC721InvalidOwner(e) => e.encode(),
             ERC721Error::ERC721NonexistentToken(e) => e.encode(),
             ERC721Error::ERC721IncorrectOwner(e) => e.encode(),
             ERC721Error::ERC721InvalidSender(e) => e.encode(),
             ERC721Error::ERC721InvalidReceiver(e) => e.encode(),
             ERC721Error::ERC721InsufficientApproval(e) => e.encode(),
-            ERC721Error::ERC721InvalidApprover(e) => e.encode(),
             ERC721Error::ERC721InvalidOperator(e) => e.encode(),
         }
     }
 }
 
-type ERC721Result<T> = Result<T, ERC721Error>;
+pub type ERC721Result<T> = Result<T, ERC721Error>;
 
 impl<T: ERC721Params> ERC721<T> {
     fn _require_owned(&self, token_id: U256) -> ERC721Result<Address> {
@@ -213,6 +209,20 @@ impl<T: ERC721Params> ERC721<T> {
 
     fn _is_approved_for_all(&self, owner: Address, operator: Address) -> ERC721Result<bool> {
         Ok(self.operator_approvals.get(owner).get(operator))
+    }
+
+    pub fn _mint(&mut self, to: Address, token_id: U256) -> ERC721Result<()> {
+        if to == Address::ZERO {
+            return Err(ERC721Error::ERC721InvalidReceiver(ERC721InvalidReceiver{ receiver: to }));
+        }
+
+        let previous_owner = self._update(to, token_id, Address::ZERO)?;
+
+        if previous_owner != Address::ZERO {
+            return Err(ERC721Error::ERC721InvalidSender(ERC721InvalidSender{ sender: Address::ZERO }));
+        }
+
+        Ok(())
     }
 }
 

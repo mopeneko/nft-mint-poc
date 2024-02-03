@@ -7,7 +7,10 @@ extern crate alloc;
 static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
 use crate::erc721::{ERC721Params, ERC721};
-use stylus_sdk::prelude::*;
+use erc721::ERC721Result;
+use stylus_sdk::{
+    alloy_primitives::{U256, Address}, prelude::*
+};
 
 struct NFTParams;
 
@@ -27,4 +30,8 @@ sol_storage! {
 
 #[external]
 #[inherit(ERC721<NFTParams>)]
-impl NFT {}
+impl NFT {
+    fn safe_mint(&mut self, to: Address, token_id: U256) -> ERC721Result<()> {
+        self.erc721._mint(to, token_id)
+    }
+}
