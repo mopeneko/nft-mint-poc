@@ -1,4 +1,7 @@
-use std::marker::PhantomData;
+use std::{
+    marker::PhantomData,
+    ops::{AddAssign, SubAssign},
+};
 use stylus_sdk::{
     alloy_primitives::{Address, U256},
     alloy_sol_types::{sol, SolError},
@@ -77,6 +80,72 @@ impl<T: ERC721Params> ERC721<T> {
         }
 
         Ok(owner)
+    }
+
+    fn _owner_of(&self, token_id: U256) -> ERC721Result<Address> {
+        Ok(self.owners.get(token_id))
+    }
+
+    fn _is_authorized(
+        &self,
+        owner: Address,
+        spender: Address,
+        token_id: U256,
+    ) -> ERC721Result<bool> {
+        Ok(spender != Address::ZERO
+            && (owner == spender
+                || self.is_approved_for_all(owner, spender)?
+                || self.get_approved(token_id)? == spender))
+    }
+
+    fn _check_authorized(
+        &self,
+        owner: Address,
+        spender: Address,
+        token_id: U256,
+    ) -> ERC721Result<()> {
+        if !self._is_authorized(owner, spender, token_id)? {
+            if owner == Address::ZERO {
+                return Err(ERC721Error::ERC721NonexistentToken(
+                    ERC721NonexistentToken { tokenId: token_id },
+                ));
+            }
+            return Err(ERC721Error::ERC721InsufficientApproval(
+                ERC721InsufficientApproval {
+                    operator: spender,
+                    tokenId: token_id,
+                },
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn _update(&mut self, to: Address, token_id: U256, auth: Address) -> ERC721Result<Address> {
+        let from = self._owner_of(token_id)?;
+
+        if auth != Address::ZERO {
+            self._check_authorized(from, auth, token_id)?;
+        }
+
+        if from != Address::ZERO {
+            self._approve_real(Address::ZERO, token_id, Address::ZERO, false)?;
+            self.balances.get(from).sub_assign(U256::from(1));
+        }
+
+        if to != Address::ZERO {
+            self.balances.get(to).add_assign(U256::from(1));
+        }
+
+        self.owners.setter(token_id).set(to);
+
+        evm::log(Transfer {
+            _from: from,
+            _to: to,
+            _tokenId: token_id,
+        });
+
+        Ok(from)
     }
 
     fn _approve_real(
@@ -185,5 +254,24 @@ impl<T: ERC721Params> ERC721<T> {
 
     fn is_approved_for_all(&self, owner: Address, operator: Address) -> ERC721Result<bool> {
         self._is_approved_for_all(owner, operator)
+    }
+
+    fn transfer_from(&mut self, from: Address, to: Address, token_id: U256) -> ERC721Result<()> {
+        if to == Address::ZERO {
+            return Err(ERC721Error::ERC721InvalidReceiver(ERC721InvalidReceiver {
+                receiver: Address::ZERO,
+            }));
+        }
+
+        let previous_owner = self._update(to, token_id, msg::sender())?;
+        if previous_owner != from {
+            return Err(ERC721Error::ERC721IncorrectOwner(ERC721IncorrectOwner {
+                sender: from,
+                tokenId: token_id,
+                owner: previous_owner,
+            }));
+        }
+
+        Ok(())
     }
 }
