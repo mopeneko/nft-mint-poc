@@ -6,9 +6,8 @@ extern crate alloc;
 #[global_allocator]
 static ALLOC: mini_alloc::MiniAlloc = mini_alloc::MiniAlloc::INIT;
 
+use crate::erc721::{ERC721Params, ERC721};
 use stylus_sdk::prelude::*;
-
-use crate::erc721::{ERC721, ERC721Params};
 
 struct NFTParams;
 

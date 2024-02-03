@@ -1,10 +1,7 @@
 use std::marker::PhantomData;
-
-use alloy_sol_types::SolError;
-/// Import the Stylus SDK along with alloy primitive types for use in our program.
 use stylus_sdk::{
     alloy_primitives::{Address, U256},
-    alloy_sol_types::sol,
+    alloy_sol_types::{sol, SolError},
     evm, msg,
     prelude::*,
 };
