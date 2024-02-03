@@ -119,6 +119,32 @@ impl<T: ERC721Params> ERC721<T> {
     fn _get_approved(&self, token_id: U256) -> ERC721Result<Address> {
         Ok(self.token_approvals.get(token_id))
     }
+
+    fn _set_approval_for_all(
+        &mut self,
+        owner: Address,
+        operator: Address,
+        approved: bool,
+    ) -> ERC721Result<()> {
+        if operator == Address::ZERO {
+            return Err(ERC721Error::ERC721InvalidOperator(ERC721InvalidOperator {
+                operator,
+            }));
+        }
+
+        self.operator_approvals
+            .setter(owner)
+            .setter(operator)
+            .set(approved);
+
+        evm::log(ApprovalForAll {
+            _owner: owner,
+            _operator: operator,
+            _approved: approved,
+        });
+
+        Ok(())
+    }
 }
 
 #[external]
@@ -151,5 +177,9 @@ impl<T: ERC721Params> ERC721<T> {
         self._require_owned(token_id)?;
 
         self._get_approved(token_id)
+    }
+
+    fn set_approval_for_all(&mut self, operator: Address, approved: bool) -> ERC721Result<()> {
+        self._set_approval_for_all(msg::sender(), operator, approved)
     }
 }
