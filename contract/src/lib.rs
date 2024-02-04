@@ -1,4 +1,8 @@
-#![cfg_attr(not(feature = "export-abi"), no_main)]
+#![cfg_attr(all(not(test), not(feature = "export-abi")), no_main)]
+
+#[cfg(test)]
+fn main() {}
+
 mod erc721;
 
 extern crate alloc;
